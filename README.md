@@ -62,7 +62,7 @@ $ cat README.md
 - [Esquite](https://github.com/ElotlMX/Esquite/)
 ```
 
-## Tarea 1: Exploración de Niveles del lenguaje 🔭
+## Práctica 1: Exploración de Niveles del lenguaje 🔭
 
 ### FECHA DE ENTREGA: 10 de Marzo 2026 at 11:59pm
 
@@ -94,3 +94,54 @@ $ cat README.md
     - ¿Por qué crees que se confundió?
     - ¿Es un problema de ambigüedad léxica (la palabra tiene múltiples etiquetas)?
     - ¿Qué *features* añadirías para solucionarlo?
+
+## Práctica 2: Propiedades estadísticas del lenguaje y Diversidad
+
+### Fecha de entrega: 17 de Marzo de 2026 11:59pm 
+
+### 1. Verificación empírica de la Ley de Zipf
+
+Verificar si la ley de Zipf se cumple en los siguientes casos:
+
+1. En un lenguaje artificial creado por ustedes.
+    * Creen un script que genere un texto aleatorio seleccionando caracteres al azar de un alfabeto definido. 
+        * **Nota:** Asegúrense de incluir el carácter de "espacio" en su alfabeto para que el texto se divida en "palabras" de longitudes variables.
+    * Obtengan las frecuencias de las palabras generadas para este texto artificial
+2. Alguna lengua de bajos recursos digitales (*low-resourced language*)
+    * Busca un corpus de libre acceso en alguna lengua de bajos recursos digitales
+    * Obten las frecuencias de sus palabras
+
+En ambos casos realiza lo siguiente:
+* Estima el parámetro $\alpha$ que mejor se ajuste a la curva
+* Generen las gráficas de rango vs. frecuencia (en escala y logarítmica).
+    * Incluye la recta aproximada por $\alpha$
+* ¿Se aproxima a la ley de Zipf? Justifiquen su respuesta comparándolo con el comportamiento del corpus visto en clase.
+
+> [!TIP]
+> Puedes utilizar los corpus del paquete [`py-elotl`](https://pypi.org/project/elotl/)
+
+### 2. Visualizando la diversidad lingüística de México
+
+1. Usando los datos de Glottolog filtralos con base en la región geográfica que corresponde a México
+    - Usa las columnas `"longitude"` y `"latitude"`
+2. Realiza un plot de las lenguas por región de un mapa
+    - Utiliza un color por familia linguistica en el mapa
+3. Haz lo mismo para otro país del mundo
+
+Responde las preguntas:
+
+- ¿Que tanta diversidad lingüística hay en México con respecto a otras regiones?
+- ¿Cuál es la zona que dirias que tiene mayor diversidad en México?
+
+> [!TIP]
+> Utiliza la biblioteca [`plotly`](https://plotly.com/python/getting-started/) para crear mapa interactivos
+
+### EXTRA. Desempeño de NER en distintos dominios (Out-of-domain)
+
+Explorar la plataforma [Hugging Face Datasets](https://huggingface.co/datasets) y elegir documentos en Español provenientes de al menos 3 dominios muy distintos (ej. noticias, artículos médicos, tweets/redes sociales, foros legales).
+* Realizar Reconocimiento de Entidades Nombradas (NER) en muestras de cada dominio utilizando spaCy o la herramienta de su preferencia.
+* Mostrar una distribución de frecuencias de las etiquetas (PER, ORG, LOC, etc.) más comunes por dominio.
+* **Análisis:** Incluyan comentarios críticos sobre el desempeño observado. ¿En qué dominio el modelo cometió más errores y a qué creen que se deba estadísticamente?
+
+> [!TIP]
+> Utiliza bibliotecas con modelos preentrenados que te permitan realizar el etiquetado NER como [`spacy`](https://spacy.io/usage) o [`stanza`](https://stanfordnlp.github.io/stanza/#getting-started).

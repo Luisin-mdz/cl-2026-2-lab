@@ -201,6 +201,12 @@ for palabra, parseo in zip(palabras, morph_parsing):
 #
 #
 # También se pueden utilizar diferentes métodos de aprendizaje de máquina para realizar análisis/generación morfológica. En los últimos años ha habido un shared task de [morphological reinflection](https://github.com/sigmorphon/2023InflectionST) para poner a competir diferentes métodos
+# -
+
+# ### Corte comercial
+#
+# - [pyelotl](https://github.com/ElotlMX/py-elotl/tree/master/)
+# - [Demos pyelotl](https://demo.elotl.mx/analizadores)
 
 # + [markdown] editable=true id="d5b878ce-f60a-4069-b618-fcb0d4e77256" slideshow={"slide_type": "subslide"}
 # ### Segmentación morfológica
@@ -235,7 +241,9 @@ for palabra, parseo in zip(palabras, morph_parsing):
 response = r.get("https://raw.githubusercontent.com/sigmorphon/2022SegmentationST/main/data/spa.word.test.gold.tsv")
 # -
 
+word_list = response.text[:1000].split("\n")
 
+word_list[0].split("\t")
 
 # + editable=true id="bb87e719-41c2-4e22-b9bf-5303902be165" slideshow={"slide_type": "subslide"}
 LANGS = {
@@ -285,8 +293,9 @@ def get_track_files(lang: str, track: str = "word") -> list[str]:
         f"{lang}.{track}.dev",
     ]
 
-# + editable=true slideshow={"slide_type": ""}
 
+# + editable=true slideshow={"slide_type": ""}
+get_track_files("spa")
 
 
 # + editable=true id="f583e168-1f5d-4426-9789-5fac8b2b221c" slideshow={"slide_type": "subslide"}
@@ -314,8 +323,14 @@ def get_raw_corpus(files: list) -> list:
         result.extend(lines[:-1])
     return result
 
-# + editable=true slideshow={"slide_type": ""}
 
+# + editable=true slideshow={"slide_type": ""}
+track_files = get_track_files("spa")
+raw_corpus = get_raw_corpus(track_files)
+# -
+
+
+raw_corpus[0]
 
 
 # + editable=true id="54de3b3d-be08-437d-b4ee-ff55d4fee2a9" slideshow={"slide_type": "subslide"}
@@ -342,17 +357,14 @@ def raw_corpus_to_dataframe(corpus_list: list, lang: str) -> pd.DataFrame:
             # Caso donde no existe la categoria
             word, tagged_data = line.split("\t")
             category = "NOT_FOUND"
-        morphemes = tagged_data.split()
+        morphemes: list = tagged_data.split()
         data_list.append(
             {"words": word, "morph": morphemes, "category": category, "lang": lang}
         )
     df = pd.DataFrame(data_list)
-    df["word_len"] = df["words"].apply(lambda x: len(x))
-    df["morph_count"] = df["morph"].apply(lambda x: len(x))
+    df["word_len"] = df["words"].apply(lambda word: len(word))
+    df["morph_count"] = df["morph"].apply(lambda list: len(list))
     return df
-
-# + editable=true slideshow={"slide_type": ""}
-
 
 
 # + colab={"base_uri": "https://localhost:8080/"} editable=true id="fe645a77-f8ca-4bf1-b11e-2274b78ba6d1" outputId="d7e50464-31a2-4979-ca32-1ecdb7c07e5c" slideshow={"slide_type": "subslide"}
@@ -367,6 +379,12 @@ df.head(20)
 # #### Análisis cuantitativo para el Español
 
 # + colab={"base_uri": "https://localhost:8080/"} editable=true id="39965a92-4719-4043-919b-3b99dca0b8f9" outputId="bac4b6a4-efa9-40ce-ac86-51939ec0d6bd" slideshow={"slide_type": "fragment"}
+len(df["words"].unique())
+# -
+
+df["category"].value_counts().head(30)
+
+CATEGORIES
 
 
 # + editable=true id="c902ecf4-889a-4082-b4b8-0cb89ba9b16c" slideshow={"slide_type": "subslide"}
@@ -399,7 +417,7 @@ def plot_histogram(df, kind, lang):
 
 
 # + colab={"base_uri": "https://localhost:8080/", "height": 487} editable=true id="1f36d2ce-cca3-49f0-b989-69dae98f9646" outputId="b3648c42-99eb-452c-fb85-d73218829014" slideshow={"slide_type": "subslide"}
-plot_histogram(df, "category", "spanish")
+plot_histogram(df, "morph_count", "spanish")
 
 
 # + [markdown] editable=true slideshow={"slide_type": "subslide"}
@@ -611,7 +629,7 @@ len(corpora)
 # ### Implementación de HMMs
 
 # Separando en dos conjuntos, uno para entrenamiento y otro para pruebas
-train_data, test_data = train_test_split(corpora, test_size=0.3, random_state=42)
+train_data, test_data = train_test_split(corpora, test_size=0.2, random_state=42)
 
 # Comprobemos la longitud de la data
 len(train_data), len(test_data)
@@ -714,8 +732,8 @@ print(f1_score(y_pred, y_true, average="macro"))
 nltk.download('punkt_tab')
 
 # +
-unseen_sentence = "La casa es grande y luminosa."
-#unseen_sentence = "La muchacha vio al dinosaurio con el telescopio"
+#unseen_sentence = "La casa es grande y luminosa."
+unseen_sentence = "La muchacha vio al dinosaurio con el telescopio"
 #unseen_sentence = "El gato rie malvadamente"
 
 # Tokenizando

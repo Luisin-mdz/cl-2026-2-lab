@@ -5,6 +5,8 @@ description = "Repositorio para prácticas de laboratorio del curso de Lingüís
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "datasets>=4.6.0",
+    "ipywidgets>=8.1.8",
     "jupyter-ruff>=0.3.1",
     "jupyterlab>=4.5.3",
     "jupyterlab-rise>=0.43.1",
@@ -13,6 +15,7 @@ dependencies = [
     "nltk>=3.9.2",
     "pandas>=3.0.0",
     "pip>=26.0.1",
+    "plotly>=6.5.2",
     "rich>=14.3.2",
     "scikit-learn>=1.8.0",
     "seaborn>=0.13.2",
