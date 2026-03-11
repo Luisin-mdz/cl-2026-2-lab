@@ -19,13 +19,11 @@
 # ## Práctica 1: Niveles Linguisticos
 
 # %%
-from inspect import get_annotations
 import requests as r
 import http
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from collections import defaultdict
 import editdistance
 # %% [markdown]
 # ## Parte 1: Fonética
@@ -159,20 +157,6 @@ raw_corpus = get_raw_corpus(track_files)
 raw_corpus[0]
 # %%
 def raw_corpus_to_dataframe(corpus_list: list, lang: str) -> pd.DataFrame:
-    """Convierte una lista de datos de corpus en un DataFrame
-
-    Parameters:
-    ----------
-    corpus_list : list
-        Lista de líneas del corpus a convertir en DataFrame.
-    lang : str
-        Idioma al que pertenecen los datos del corpus.
-
-    Returns:
-    -------
-    pd.DataFrame
-        Un DataFrame de pandas que contiene los datos del corpus procesados.
-    """
     data_list = []
     for line in corpus_list:
         try:
@@ -405,5 +389,3 @@ for label, df in zip(lang_labels, dfs):
 # El inglés es aislante.
 # El ruso es fusionante.
 #
-
-# %%
