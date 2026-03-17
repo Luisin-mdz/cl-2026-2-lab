@@ -16,6 +16,11 @@
 # %% [markdown] id="sOJM1EkN_qZl"
 # # 4. Representaciones vectoriales
 
+# %% [markdown]
+# <a target="_blank" href="https://colab.research.google.com/github/umoqnier/cl-2026-2-lab/blob/main/notebooks/4_vectors.ipynb">
+#   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+# </a>
+
 # %% [markdown] id="4li-hx6jolxY"
 #
 # ![](https://www.ruder.io/content/images/size/w2000/2016/04/word_embeddings_colah.png)
