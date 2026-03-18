@@ -27,6 +27,7 @@ import pandas as pd
 from collections import Counter
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
+import os
 # %% [markdown]
 # ## Procesamiento de texto
 # %%
@@ -184,5 +185,153 @@ plt.show()
 # ### ¿Se aproxima a la ley de Zipf?
 # Si, notemos que la gŕafica logaritmica se acerca mucho a la recta generada por el alfa calculada anteriormente, pro que lo podemos concluir que aunque el corpus del Tzotzil sea uno muy pequeño, al ser el Tzotzil una lengua natural claramente sigue la ley de Zipf.
 
+# %% [markdown]
+# ## 2. Visualizando la diversidad linguistica de México y Chile
+# Reutilizaremos el código visto en clase.
+
 # %%
-## 
+DATA_PATH = "data"
+LANG_GEO_FILE = "languages_and_dialects_geo.csv"
+LANGUOID_FILE = "languoid.csv"
+
+# %%
+languages = pd.read_csv(os.path.join(DATA_PATH, LANG_GEO_FILE))
+languoids = pd.read_csv(os.path.join(DATA_PATH, LANGUOID_FILE))
+
+# %%
+languages.head(15)
+languoids.head(15)
+
+# %%
+min_lat = -14
+max_lat = 33
+min_long = -118
+max_long = -86
+
+mexico_languages = languages[
+    (languages["latitude"] >= min_lat)
+    &(languages["latitude"] <= max_lat)
+    &(languages["longitude"] >= min_long)
+    &(languages["longitude"] <= max_long)
+]
+
+# %%
+len(mexico_languages)
+
+# %% [markdown]
+# ### Tomamos la funcion de reconstruir linajes de la práctica
+
+# %%
+# Reconstrucción de linajes usando grafos locales (languoid.csv)
+languoids_dict = languoids.set_index("id").to_dict("index")
+
+
+def reconstruir_linaje(glottocode):
+    """Sube por el árbol genealógico desde la lengua hasta la familia raíz."""
+    linaje = []
+    current_id = glottocode
+
+    # Mientras el ID actual exista y no sea nulo (NaN)
+    while pd.notna(current_id) and current_id in languoids_dict:
+        nodo = languoids_dict[current_id]
+
+        # Filtramos lenguas artificiales o "bookkeeping"
+        if nodo.get("bookkeeping") or nodo.get("name") == "Unclassifiable":
+            return "Unclassifiable"
+
+        # Insertamos el nombre al inicio de la lista para mantener el orden (Raíz -> Lengua)
+        linaje.insert(0, str(nodo["name"]))
+
+        # Subimos al nodo padre
+        current_id = nodo["parent_id"]
+
+    return " > ".join(linaje)
+
+
+# %%
+mexico_languages = mexico_languages.copy()
+
+mexico_languages["tree"] = mexico_languages["glottocode"].apply(reconstruir_linaje)
+
+# %%
+df_mexico = mexico_languages[
+    ~mexico_languages["tree"].isin(["", "Unclassifiable"])
+].copy()
+
+
+# %%
+df_mexico["Family"] = df_mexico["tree"].str.split().str[0]
+
+# %%
+import plotly.express as px
+
+fig = px.scatter_geo(
+    df_mexico,
+    lat="latitude",
+    lon="longitude",
+    color="Family",
+    hover_name="name",
+    title="Diversidad lingüística en México"
+)
+
+fig.show()
+
+# %% [markdown]
+# ## Hacemos exactamente lo mismo para otro país, elegiremos Perú.
+#
+
+# %%
+min_lat = -18
+max_lat = 0
+min_long = -82
+max_long = -68
+
+peru_languages = languages[
+    (languages["latitude"] >= min_lat)
+    & (languages["latitude"] <= max_lat)
+    & (languages["longitude"] >= min_long)
+    & (languages["longitude"] <= max_long)
+]
+
+# %%
+peru_languages = peru_languages.copy()
+peru_languages["tree"] = peru_languages["glottocode"].apply(reconstruir_linaje)
+df_peru = peru_languages[
+    ~peru_languages["tree"].isin(["", "Unclassifiable"])
+].copy()
+df_peru["Family"] = df_peru["tree"].str.split().str[0]
+# %%
+# Visualización de la diversidad lingüística en Perú
+fig = px.scatter_geo(
+    df_peru,
+    lat="latitude",
+    lon="longitude",
+    color="Family",
+    hover_name="name",
+    title="Diversidad lingüística en Perú"
+)
+fig.show()
+
+# %% [markdown]
+# ### Diversidad lingüistica de México en comparacion a Perú
+# Notemos la longitud de lenguajes en nuestras regiones
+
+# %%
+len(df_mexico)
+
+# %%
+len(df_peru)
+
+# %% [markdown]
+# #### Notamos que la cantidad de lenguas en México es poco más del doble que la cantidad de lenguas en Perú
+
+# %%
+df_mexico["Family"].nunique()
+
+# %%
+df_peru["Family"].nunique()
+
+# %%
+df_mexico["Family"].value_counts()
+
+# %%
