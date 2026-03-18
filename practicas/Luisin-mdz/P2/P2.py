@@ -16,7 +16,7 @@
 # ---
 
 # %% [markdown]
-# # P2: Ley de Pzif
+# # P2: Ley de Zipf
 # Veremos si un idioma artificial creado aleatoreamente cumple con la ley de Pzif, y veremos como se comporta una lengua con pocos recursos digitales.
 # %%
 # Importamos las librerías necesarias
@@ -183,7 +183,7 @@ plt.show()
 
 # %% [markdown]
 # ### ¿Se aproxima a la ley de Zipf?
-# Si, notemos que la gŕafica logaritmica se acerca mucho a la recta generada por el alfa calculada anteriormente, pro que lo podemos concluir que aunque el corpus del Tzotzil sea uno muy pequeño, al ser el Tzotzil una lengua natural claramente sigue la ley de Zipf.
+# Si, notemos que la gŕafica logaritmica se acerca mucho a la recta generada por el alfa calculada anteriormente, al ser el Tzotzil una lengua natural claramente sigue la ley de Zipf.
 
 # %% [markdown]
 # ## 2. Visualizando la diversidad linguistica de México y Chile
@@ -322,16 +322,22 @@ len(df_mexico)
 # %%
 len(df_peru)
 
-# %% [markdown]
-# #### Notamos que la cantidad de lenguas en México es poco más del doble que la cantidad de lenguas en Perú
-
 # %%
 df_mexico["Family"].nunique()
 
 # %%
 df_peru["Family"].nunique()
 
+# %% [markdown]
+# Diversidad lingüística en México con respecto a Perú
+#
+# México presenta una mayor cantidad de lenguas en comparación con Perú (404 frente a 177), lo que indica una alta diversidad en términos absolutos. Sin embargo, el número de familias lingüísticas es muy similar entre ambos países (36 en México y 37 en Perú), lo que sugiere que, aunque México tiene más lenguas, estas están distribuidas en un número comparable de familias.
+
 # %%
 df_mexico["Family"].value_counts()
 
-# %%
+# %% [markdown]
+# ### ¿Dónde se encuentra la mayor diversidad lingüistica en méxico? 
+# Zonas de mayor diversidad en México
+#
+# La mayor diversidad lingüística en México se concentra en el sur y centro del país, particularmente en estados como Oaxaca, Chiapas, Guerrero y Veracruz. Esto se refleja en la alta presencia de lenguas pertenecientes a familias como la otomangue, la uto-azteca y la maya, siendo la familia otomangue la más dominante con una diferencia considerable respecto a las demás.
