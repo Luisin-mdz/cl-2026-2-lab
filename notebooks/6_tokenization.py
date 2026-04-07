@@ -17,6 +17,11 @@
 # # 6. Preprocesamiento y tokenización
 
 # %% [markdown]
+# <a target="_blank" href="https://colab.research.google.com/github/umoqnier/cl-2026-2-lab/blob/main/notebooks/6_tokenization.ipynb">
+#   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+# </a>
+
+# %% [markdown]
 # <img src="https://2.bp.blogspot.com/-oDvCIkIjwXw/VdWWxfvmq3I/AAAAAAAARUE/r0MrmbNzMz8/s1600/inputoutput.jpg" width=500>
 
 # %% [markdown]
@@ -24,13 +29,44 @@
 
 # %% [markdown]
 # - Listar algunos pasos comúnes para el preprocesamiento de texto
-#   - Aplicar preprocesamiento a corpus en español e inglés
+#   - Aplicar preprocesamiento a un corpus
 # - Entender el funcionamiento de algoritmos de sub-word tokenization
 #   - BPE
 #   - Word-piece
 #   - Sentecepiece
 # - Entrenar modelos para sub-word tokenization
 #   - Aplicar BPE a corpus
+
+# %% [markdown]
+# ## El lenguaje, datos inherentemente desarreglados
+
+# %% [markdown]
+# Los datos con los que trabajamos son inherentemente **desestructurados** y en general contienen ruido, irregularidades, e inconsistencias.
+#
+# Los modelos de NLP son sensibles a estos problemas y en realidad no pueden utilizar el texto directamente. Dado que el texto es una representación simbólica de la información, es necesario convertirlo a una representación numérica que el modelo pueda utilizar. Esta representación generalmente serán **vectores** con valores reales llamados *embeddings*.
+#
+# El objetivo es crear un *pipeline* que transforme el texto crudo en *embeddigs* que serán utilizados como entrada para crear modelos que resuelvan alguna tarea de NLP.
+
+# %% [markdown]
+# ### *Pipelines*
+
+# %% [markdown]
+# ![](https://i.makeagif.com/media/11-05-2015/x60GaR.gif)
+
+# %% [markdown]
+# Al crear sistemas de *NLP* nos enfrentamos con problemas complejos. Conviene entonces separar dichos problemas en pequeños problemas que podamos manejar y resolver por separado. 
+#
+# El preprocessamiento es el primer paso de este proceso. Otros elementos pueden ser los siguientes:
+#
+# - Definición del problema
+# - Adquisición de datos
+# - Ingeniería de características (*feature engineering*)
+# - Modelado
+#     - Definición de hiperparametros
+# - Entrenamiento
+# - Evaluación
+# - Puesta en producción
+# - Monitorización y actualización del modelo
 
 # %% [markdown]
 # ## Elementos del preprocesamiento
@@ -49,28 +85,95 @@
 #     - Por letras
 #     - Por sub-palabras
 # - *Embeddings*
-#     - Los modelos solo entienden números, por lo que hay que convertir el texto a números
-#     - Cada palabra se representa como un vector de números 
+#     - Los modelos solo entienden números, por lo que hay que convertir el texto a una representación vectorial
 
 # %% [markdown]
-# ### Stopwords
+# ### Limpieza de textos
+
+# %% [markdown]
+# Es común usar regex o bibliotecas como `BeautifulSoup` para limpiar el texto de etiquetas de marcado
 
 # %%
-import re
-import nltk
-from nltk.corpus import stopwords
+import requests
+from bs4 import BeautifulSoup
 from rich import print as rprint
 
 # %%
-BASE_PATH = "./"
-CORPORA_PATH = f"{BASE_PATH}/corpora/tokenization"
-MODELS_PATH = f"{BASE_PATH}/models/sub-word"
+url = "https://elotl.mx/blog/index.html"
+response = requests.get(url)
+
+soup = BeautifulSoup(response.content, "html.parser")
+posts = soup.find("div", class_="widget_onetone_recent_posts")
+
+if posts:
+    rows = posts.find_all("li")
+    for row in rows:
+        text = row.get_text()
+        rprint(text)
 
 # %%
-nltk.download('stopwords')
+import nltk
+
+nltk.download("gutenberg")
 
 # %%
-rprint(stopwords.words("spanish")[:15])
+from nltk.corpus import gutenberg
+
+moby = gutenberg.raw("melville-moby_dick.txt")
+
+# %%
+print(moby[:30000])
+
+# %%
+import re
+from nltk.tokenize import sent_tokenize
+
+
+def clean_and_extract_sentences(text: str) -> list[str]:
+    """Clean preamble text from Moby Dick and extract sentences from the novel."""
+    novel_start_patterns = [
+        r"CHAPTER\s+1\b",  # Matches "CHAPTER 1"
+        r"Call\s+me\s+Ishmael",  # Matches "Call me Ishmael"
+    ]
+
+    # Buscamos el índice donde comienza la novelaS
+    novel_start = None
+    for pattern in novel_start_patterns:
+        match = re.search(pattern, text)
+        if match and (novel_start is None or match.start() < novel_start):
+            novel_start = match.start()
+
+    if novel_start is None:
+        return []
+
+    # Descartamos el preambulo
+    novel_text = text[novel_start:]
+
+    # Limpiamos el texto
+    novel_text = re.sub(r"CHAPTER\s+\d+", "", novel_text)
+    novel_text = re.sub(r"\s+", " ", novel_text).strip()
+    novel_text = re.sub(r"\[.*?\]", "", novel_text)
+
+    # Extraemos las oraciones
+    sentences = sent_tokenize(novel_text)
+
+    # Limpieza adicional
+    cleaned_sentences = []
+    for sentence in sentences:
+        sentence = sentence.strip()
+        sentence = re.sub(r"^[^a-zA-Z]+", "", sentence)
+        sentence = re.sub(r"[^a-zA-Z]+$", "", sentence)
+
+        if sentence:
+            cleaned_sentences.append(sentence)
+
+    return cleaned_sentences
+
+
+# %%
+sentences = clean_and_extract_sentences(moby)
+for i, sentence in enumerate(sentences[:10], 1):
+    rprint(f"{i}. {sentence}")
 
 # %% [markdown]
 # ### Normalización
@@ -81,50 +184,36 @@ rprint(stopwords.words("spanish")[:15])
 # %%
 import unicodedata
 
+
 def strip_accents(s: str) -> str:
-   return ''.join(
-       c for c in unicodedata.normalize('NFD', s)
-       if unicodedata.category(c) != 'Mn'
-   )
+    """Remove diacritical marks from characters in a Unicode string.
+
+    Uses Unicode NFD (Normalization Form Decomposition) normalization to decompose accented characters into their
+    base character + combining mark, then filters out combining marks (Mark, Nonspacing, Mn category).
+    """
+    return "".join(
+        c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn"
+    )
 
 
 # %%
-strip_accents("mamá hoy quería que me oigan en el olímpo")
+rprint(
+    strip_accents("""Éxtasis
+E-, e-, e-, e-, e-, e-, e-
+Éxtasis
+Éxtasis
 
+Aquí no existe el bajón
+Tamos' de fiestón, ya sabes
+Despierta la inspiración
+Si sacamos las suaves""")
+)
 
 # %% [markdown]
 # - https://www.unicode.org/reports/tr44/#GC_Values_Table
 #
 # > And keep in mind, these manipulations may significantly alter the meaning of the text. Accents, Umlauts etc. are not "decoration".
 # - [oefe](https://stackoverflow.com/users/49793/oefe) - [source](https://stackoverflow.com/questions/517923/what-is-the-best-way-to-remove-accents-normalize-in-a-python-unicode-string)
-
-# %%
-def preprocess(words: list[str], regex: str="\w+", lang: str="en") -> list[str]:
-    """Preprocess step for corpus
-
-    Parameters
-    ----------
-    words: list[str]
-        Words of a given corpus
-    regex: str
-        Optional regex to filter patterns in words. Default \w+
-    lang: str
-        Optional lang for choice stopwords. Default "en"
-
-    Return
-    ------
-    list:
-        List of words filtered and normalized
-
-    """
-    stop_lang = "english" if lang=="en" else "spanish"
-    result = []
-    for word in words:
-        word = re.sub(f"[^\w\s]", "", word).lower()
-        if word.isalpha():
-            result.append(word)
-    return result
-
 
 # %% [markdown]
 # #### ¿Para otras lenguas?
@@ -153,22 +242,55 @@ axolotl = elotl.corpus.load("axolotl")
 nahuatl_normalizer = elotl.nahuatl.orthography.Normalizer("sep")
 
 # %%
-axolotl[1][1]
+rprint(axolotl[1][1])
 
 # %%
-nahuatl_normalizer.normalize(axolotl[1][1])
+rprint(nahuatl_normalizer.normalize(axolotl[1][1]))
 
 # %%
 nahuatl_normalizer.to_phones(axolotl[1][1])
 
 # %% [markdown]
+# ### Stopwords
+
+# %%
+from nltk.corpus import stopwords
+
+# %%
+nltk.download("stopwords")
+
+# %%
+rprint(stopwords.words("spanish")[:15])
+
+
+# %% [markdown]
+# ### Definiendo una función de preprocesamiento
+
+# %%
+def preprocess(words: list[str], regex: str=r"[^\w+]", lang: str="en", remove_stops: bool = False, remove_accents: bool = False) -> list[str]:
+    """Preprocess step for list of words in corpus
+    """
+    stop_lang = "english" if lang=="en" else "spanish"
+    result = []
+    for word in words:
+        word = re.sub(regex, "", word).lower()
+        if remove_stops and word in stopwords.words(stop_lang) or (len(word) < 2):
+            continue
+        
+        if remove_accents:
+            word = strip_accents(word)
+        result.append(word)
+    return result
+
+
+# %% [markdown]
 # ## ¿Cuántas palabras hay en las siguientes oraciones?
 
 # %%
-sentence = "Quitan el trapo y no lo ponen. ¿Por qué quitan el trapo? Si es una cosa que debe estar ahí."
+sentence_trapo = "Quitan el trapo y no lo ponen. ¿Por qué quitan el trapo? Si es una cosa que debe estar ahí."
 
 # %%
-sentence = "Mmmmm haz lo que quieras... pero no me digas que no te lo advertí 😓"
+sentence_sad = "Mmmmm haz lo que quieras... pero no me digas que no te lo advertí 😓"
 
 # %% [markdown]
 # - A estas alturas tenemos cierta información acerca de las palabras:
@@ -200,7 +322,9 @@ sentence = "Mmmmm haz lo que quieras... pero no me digas que no te lo advertí �
 # En lenguas donde los espacios no son utilizados para marcar posibles delimitaciones entre palabras la cosa se pone más dura:
 #
 # - 姚明进入总决赛 - yáo míng jìn rù zong jué sài
-# > Yao Ming llegó a las finales
+# - *"Yao Ming llegó a las finales"*
+#
+# > Tomado de (Jurafsky, 2026)
 
 # %% [markdown]
 # Chinese Treebank:
@@ -272,8 +396,6 @@ text = """
 text.split()
 
 # %%
-import re
-
 # [a-zA-Z_]
 regex = r"\w+"
 re.findall(regex, text)
@@ -304,13 +426,16 @@ re.findall(regex, "El valor de PI es 3.14159")
 # ![](https://i.pinimg.com/736x/77/df/89/77df89e6ff57d332ba4e5d7bff723133--meme.jpg)
 
 # %%
-import nltk
-from nltk.corpus import brown
-nltk.download('brown')
+nltk.download("brown")
 
 # %%
-brown_corpus = preprocess(brown.words()[:100000])
-rprint(brown_corpus[0])
+from nltk.corpus import brown
+
+# %%
+brown_corpus = preprocess(brown.words()[:100000], lang="en", remove_stops=True)
+
+# %%
+rprint(brown_corpus[:10])
 
 # %%
 rprint(brown_corpus[:10])
@@ -318,11 +443,11 @@ rprint(brown_corpus[:10])
 # %%
 from collections import Counter
 
-rprint(f"[yellow]Brown Vanilla")
+rprint("[bright_yellow]Brown Vanilla")
 rprint("Tokens:", len(brown.words()))
 rprint("Tipos:", len(Counter(brown.words())))
 
-rprint(f"[green]Brown Preprocess")
+rprint("[bright_green]Brown Preprocess")
 rprint("Tokens:", len(brown_corpus))
 rprint("Tipos:", len(Counter(brown_corpus)))
 
@@ -347,23 +472,24 @@ stemmed_brown = [stemmer.stem(word) for word in brown_corpus]
 # %%
 import spacy
 
-def lemmatize(words: list, lang: str="en") -> list:
+
+def lemmatize(words: list, lang: str = "en") -> list:
     model = "en_core_web_md" if lang == "en" else "es_core_news_md"
     nlp = spacy.load(model)
     nlp.max_length = 1500000
-    lemmatizer = nlp.get_pipe("lemmatizer")
-    return [token.lemma_ for token in nlp(" ".join(words))]
+    lemmas = []
+    for doc in nlp.pipe([" ".join(words)], batch_size=500):
+        lemmas.extend([token.lemma_ for token in doc if not token.is_space])
+    return lemmas
 
 
 # %%
-lemmatized_brown = lemmatize(brown_corpus)
+lemmatized_brown = lemmatize(brown_corpus, lang="en")
 
 # %%
-from rich.panel import Panel
-
-rprint("Tipos ([blue]word-based):", len(Counter(brown_corpus)))
-rprint("Tipos ([yellow]Steamming):", len(Counter(stemmed_brown)))
-rprint("Tipos ([green]Lemmatized):", len(Counter(lemmatized_brown)))
+rprint("Tipos ([bright_magenta]word-based[/]):", len(Counter(brown_corpus)))
+rprint("Tipos ([bright_yellow]Steamming[/]):", len(Counter(stemmed_brown)))
+rprint("Tipos ([bright_green]Lemmatized[/]):", len(Counter(lemmatized_brown)))
 
 # %% [markdown]
 # #### More problems?
@@ -377,9 +503,6 @@ rprint("Tipos ([green]Lemmatized):", len(Counter(lemmatized_brown)))
 
 # %% [markdown]
 # ## Subword-tokenization salva el día 🦸🏼‍♀️
-
-# %% [markdown]
-# ![](https://gifdb.com/images/high/super-cow-and-chicken-daxvak1q16quwd9p.webp)
 
 # %% [markdown]
 # - Segmentación de palabras en unidades más pequeñas (*sub-words*)
@@ -416,6 +539,143 @@ print(f"Objetivo: {text} -> {result}")
 # %%
 # %%HTML
 <iframe width="960" height="515" src="https://www.youtube.com/embed/HEikzVL-lZU"></iframe>
+
+# %% [markdown]
+# ### Implementación de BPE
+
+# %%
+corpus = clean_and_extract_sentences(moby)
+
+# %%
+from nltk.tokenize import word_tokenize
+
+# %%
+from collections import defaultdict
+
+
+word_freqs = defaultdict(int)
+
+for sent in corpus:
+    words = word_tokenize(sent)
+    for word in words:
+        word_freqs[word] += 1
+
+# %%
+print(word_freqs)
+
+# %%
+alphabet = set()
+
+for word in word_freqs.keys():
+    for char in word:
+        if char not in alphabet:
+            alphabet.add(char)
+
+# %%
+print(alphabet)
+
+# %%
+splits = {word: [c for c in word] for word in word_freqs.keys()}
+
+# %%
+print(splits)
+
+
+# %% [markdown]
+# #### Creando el modelo
+
+# %%
+def compute_pair_freqs(splits):
+    pair_freqs = defaultdict(int)
+    for word, freq in word_freqs.items():
+        split = splits[word]
+        if len(split) == 1:
+            continue
+        for i in range(len(split) - 1):
+            pair = (split[i], split[i + 1])
+            pair_freqs[pair] += freq
+    return pair_freqs
+
+
+# %%
+pair_freqs = compute_pair_freqs(splits)
+
+# %%
+for i, key in enumerate(pair_freqs.keys()):
+    print(f"{key}: {pair_freqs[key]}")
+    if i >= 5:
+        break
+
+# %%
+best_pair = ""
+max_freq = None
+
+for pair, freq in pair_freqs.items():
+    if max_freq is None or max_freq < freq:
+        best_pair = pair
+        max_freq = freq
+
+print(best_pair, max_freq)
+
+
+# %% [markdown]
+# Aplicamos el merge más común
+
+# %%
+def merge_pair(a, b, splits):
+    for word in word_freqs:
+        split = splits[word]
+        if len(split) == 1:
+            continue
+
+        i = 0
+        while i < len(split) - 1:
+            if split[i] == a and split[i + 1] == b:
+                split = split[:i] + [a + b] + split[i + 2 :]
+            else:
+                i += 1
+        splits[word] = split
+    return splits
+
+
+# %%
+vocab = []
+merges = {}
+vocab_size = 500
+
+while len(vocab) < vocab_size:
+    pair_freqs = compute_pair_freqs(splits)
+    best_pair = ""
+    max_freq = None
+    for pair, freq in pair_freqs.items():
+        if max_freq is None or max_freq < freq:
+            best_pair = pair
+            max_freq = freq
+    splits = merge_pair(*best_pair, splits)
+    merges[best_pair] = best_pair[0] + best_pair[1]
+    vocab.append(best_pair[0] + best_pair[1])
+
+
+# %%
+def tokenize(text):
+    words = word_tokenize(text)
+    splits = [[c for c in word] for word in words]
+    for pair, merge in merges.items():
+        for idx, split in enumerate(splits):
+            i = 0
+            while i < len(split) - 1:
+                if split[i] == pair[0] and split[i + 1] == pair[1]:
+                    split = split[:i] + [merge] + split[i + 2 :]
+                else:
+                    i += 1
+            splits[idx] = split
+
+    return sum(splits, [])
+
+
+# %%
+for token in tokenize("This is necessary for you my heaviest friendly friend"):
+    print(token)
 
 # %%
 # !pip install transformers
@@ -462,6 +722,7 @@ rprint(bpe_tokenizer.decode(encoded_tokens["input_ids"]))
 
 # %%
 from transformers import BertTokenizer
+
 SENTENCE = "🌽" + SENTENCE + "🔥"
 wp_tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 rprint(wp_tokenizer.tokenize(SENTENCE))
@@ -519,6 +780,11 @@ rprint(tokenizer.tokenize(SENTENCE))
 # ### Vamos a tokenizar 🌈
 # ![](https://i.pinimg.com/736x/58/6b/88/586b8825f010ce0e3f9c831f568aafa8.jpg)
 
+# %%
+BASE_PATH = "."
+CORPORA_PATH = f"{BASE_PATH}/data/tokenization"
+MODELS_PATH = f"{BASE_PATH}/models/sub-word"
+
 # %% [markdown]
 # #### Corpus en español: CESS
 
@@ -550,7 +816,6 @@ with open(f"{CORPORA_PATH}/cess_plain.txt", "w") as f:
 # #### Corpus Inglés: Gutenberg
 
 # %%
-nltk.download('gutenberg')
 nltk.download("punkt_tab")
 
 # %%
@@ -579,7 +844,11 @@ with open(f"{CORPORA_PATH}/gutenberg_plain.txt", "w") as f:
 # %%
 from transformers import AutoTokenizer
 
-spanish_tokenizer = AutoTokenizer.from_pretrained("dccuchile/bert-base-spanish-wwm-uncased")
+spanish_tokenizer = AutoTokenizer.from_pretrained(
+    "dccuchile/bert-base-spanish-wwm-uncased"
+)
+
+# %%
 rprint(spanish_tokenizer.tokenize(cess_plain_text[1000:1400]))
 
 # %%
@@ -604,9 +873,9 @@ rprint(cess_lemmatized_types.most_common(30))
 
 # %%
 rprint("CESS")
-rprint(f"Tipos ([blue]word-base): {len(cess_types)}")
-rprint(f"Tipos ([yellow]lemmatized): {len(cess_lemmatized_types)}")
-rprint(f"Tipos ([green]sub-word): {len(cess_tokenized_types)}")
+rprint(f"Tipos ([bright_magenta]word-base[/]): {len(cess_types)}")
+rprint(f"Tipos ([bright_yellow]lemmatized[/]): {len(cess_lemmatized_types)}")
+rprint(f"Tipos ([bright_green]sub-word[/]): {len(cess_tokenized_types)}")
 
 # %% [markdown]
 # #### Tokenizando para el inglés
@@ -619,7 +888,7 @@ gutenberg_tokenized = wp_tokenizer.tokenize(gutenberg_plain_text)
 gutenberg_tokenized_types = Counter(gutenberg_tokenized)
 
 # %%
-rprint(gutenberg_tokenized_types.most_common(100))
+rprint(gutenberg_tokenized_types.most_common(10))
 
 # %%
 gutenberg_lemmatized_types = Counter(lemmatize(gutenberg_preprocessed_words))
@@ -629,9 +898,9 @@ rprint(gutenberg_lemmatized_types.most_common(20))
 
 # %%
 rprint("Gutenberg")
-rprint(f"Tipos ([blue]word-base): {len(gutenberg_types)}")
-rprint(f"Tipos ([yellow]lemmatized): {len(gutenberg_lemmatized_types)}")
-rprint(f"Tipos ([green]sub-word): {len(gutenberg_tokenized_types)}")
+rprint(f"Tipos ([bright_magenta]word-base[/]): {len(gutenberg_types)}")
+rprint(f"Tipos ([bright_yellow]lemmatized[/]): {len(gutenberg_lemmatized_types)}")
+rprint(f"Tipos ([bright_green]sub-word[/]): {len(gutenberg_tokenized_types)}")
 
 # %% [markdown]
 # #### OOV: out of vocabulary
@@ -642,7 +911,9 @@ rprint(f"Tipos ([green]sub-word): {len(gutenberg_tokenized_types)}")
 # %%
 from sklearn.model_selection import train_test_split
 
-train_data, test_data = train_test_split(gutenberg_words, test_size=0.3, random_state=42)
+train_data, test_data = train_test_split(
+    gutenberg_words, test_size=0.3, random_state=42
+)
 rprint(len(train_data), len(test_data))
 
 # %%
@@ -659,7 +930,9 @@ for word in list(oov_test)[:3]:
     rprint(f"{word} in train: {word in set(train_data)}")
 
 # %%
-train_tokenized, test_tokenized = train_test_split(gutenberg_tokenized, test_size=0.3, random_state=42)
+train_tokenized, test_tokenized = train_test_split(
+    gutenberg_tokenized, test_size=0.3, random_state=42
+)
 rprint(len(train_tokenized), len(test_tokenized))
 
 # %%
@@ -704,16 +977,23 @@ rprint("OOV ([green]sub-word):", len(oov_tokenized_test))
 # ### Aplicandolo a otros corpus: La biblia 📖🇻🇦
 
 # %%
-BIBLE_FILE_NAMES = {"spa": "spa-x-bible-reinavaleracontemporanea", "eng": "eng-x-bible-kingjames"}
+BIBLE_FILE_NAMES = {
+    "spa": "spa-x-bible-reinavaleracontemporanea",
+    "eng": "eng-x-bible-kingjames",
+}
 
 # %%
 import requests
 
+
 def get_bible_corpus(lang: str) -> str:
     """Download bible file corpus from GitHub repo"""
     file_name = BIBLE_FILE_NAMES[lang]
-    r = requests.get(f"https://raw.githubusercontent.com/ximenina/theturningpoint/main/Detailed/corpora/corpusPBC/{file_name}.txt.clean.txt")
+    r = requests.get(
+        f"https://raw.githubusercontent.com/ximenina/theturningpoint/main/Detailed/corpora/corpusPBC/{file_name}.txt.clean.txt"
+    )
     return r.text
+
 
 def write_plain_text_corpus(raw_text: str, file_name: str) -> None:
     """Write file text on disk"""
@@ -752,7 +1032,7 @@ write_plain_text_corpus(eng_bible_plain_text, f"{CORPORA_PATH}/eng-bible")
 #  {CORPORA_PATH}/eng-bible-tokenized.txt
 
 # %%
-with open(f"{CORPORA_PATH}/eng-bible-tokenized.txt", 'r') as f:
+with open(f"{CORPORA_PATH}/eng-bible-tokenized.txt", "r") as f:
     tokenized_data = f.read()
 eng_bible_tokenized = tokenized_data.split()
 
@@ -773,7 +1053,7 @@ eng_bible_tokenized_types.most_common(30)
 # #### ¿Qué pasa si aplicamos el modelo aprendido con Gutenberg a otras lenguas?
 
 # %%
-spa_bible_plain_text = get_bible_corpus('spa')
+spa_bible_plain_text = get_bible_corpus("spa")
 spa_bible_words = spa_bible_plain_text.replace("\n", " ").lower().split()
 
 # %%
@@ -822,24 +1102,26 @@ spa_bible_tokenized_types.most_common(40)
 # %% [markdown]
 # ### Type-token Ratio (TTR)
 #
-# - Una forma de medir la variazión del vocabulario en un corpus
+# - Una forma de medir la variación del vocabulario en un corpus
 # - Este se calcula como $TTR = \frac{len(types)}{len(tokens)}$
 # - Puede ser útil para monitorear la variación lexica de un texto
 
 # %%
 rprint("Información de la biblia en Inglés")
 rprint("Tokens:", len(eng_bible_words))
-rprint("Types ([blue]word-base):", len(eng_bible_types))
-rprint("Types ([yellow]lemmatized)", len(eng_bible_lemmas_types))
-rprint("Types ([green]BPE):", len(eng_bible_tokenized_types))
-rprint("TTR ([blue]word-base):", len(eng_bible_types)/len(eng_bible_words))
-rprint("TTR ([green]BPE):", len(eng_bible_tokenized_types)/len(eng_bible_tokenized))
+rprint("Types ([bright_magenta]word-base):", len(eng_bible_types))
+rprint("Types ([bright_yellow]lemmatized)", len(eng_bible_lemmas_types))
+rprint("Types ([bright_green]BPE):", len(eng_bible_tokenized_types))
+rprint("TTR ([bright_magenta]word-base):", len(eng_bible_types) / len(eng_bible_words))
+rprint("TTR ([bright_green]BPE):", len(eng_bible_tokenized_types) / len(eng_bible_tokenized))
 
 # %%
 rprint("Bible Spanish Information")
 rprint("Tokens:", len(spa_bible_words))
-rprint("Types ([blue]word-base):", len(spa_bible_types))
-rprint("Types ([yellow]lemmatized)", len(spa_bible_lemmas_types))
-rprint("Types ([green]BPE):", len(spa_bible_tokenized_types))
-rprint("TTR ([blue]word-base):", len(spa_bible_types)/len(spa_bible_words))
-rprint("TTR ([green]BPE):", len(spa_bible_tokenized_types)/len(spa_bible_tokenized))
+rprint("Types ([bright_magenta]word-base):", len(spa_bible_types))
+rprint("Types ([bright_yellow]lemmatized)", len(spa_bible_lemmas_types))
+rprint("Types ([bright_green]BPE):", len(spa_bible_tokenized_types))
+rprint("TTR ([bright_magenta]word-base):", len(spa_bible_types) / len(spa_bible_words))
+rprint("TTR ([bright_green]BPE):", len(spa_bible_tokenized_types) / len(spa_bible_tokenized))
+
+# %%
