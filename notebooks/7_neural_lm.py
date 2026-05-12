@@ -36,16 +36,16 @@
 # %% id="842d9260-ec3b-4178-9b55-e0355e55dd5c"
 import os
 import re
+from rich import print as rprint
+from nltk import word_tokenize
+from collections import Counter
+from nltk.stem.snowball import SnowballStemmer
 
 # %% [markdown] id="9d94c922-7b60-41db-ae50-a8c09612e476"
 # ## Funciones de preprocesamiento
+
 # %% id="de301338-c7aa-4ab6-9f73-7195781175d0"
 import unicodedata
-from collections import Counter
-
-from nltk import word_tokenize
-from nltk.stem.snowball import SnowballStemmer
-from rich import print as rprint
 
 
 def strip_accents(s: str) -> str:
@@ -60,7 +60,8 @@ def strip_accents(s: str) -> str:
 
 
 def preprocess_text(text: str, to_lower: bool = True) -> str:
-    """Preprocess text by normalizing, lowercasing and removing extra spaces."""
+    """Preprocess text by normalizing, lowercasing and removing extra spaces.
+    """
     # 1. Unicode Normalization (NFC)
     text = unicodedata.normalize("NFC", text)
 
@@ -232,7 +233,6 @@ write_plain_text_corpus(spa_bible_plain_text, f"{CORPORA_PATH}/bible-spa")
 
 # %% colab={"base_uri": "https://localhost:8080/"} id="LcKwpaRpxKzw" outputId="c1ddf4dc-0a75-4642-f283-d29d1387dce2"
 import nltk
-
 nltk.download("punkt_tab")
 
 # %% id="c78bd45b"
@@ -383,9 +383,9 @@ from gensim.utils import simple_preprocess
 print(simple_preprocess(post["text"], deacc=True)[:10])
 
 # %% id="a6e0fb01"
+from tqdm.notebook import tqdm
 from datasets import load_dataset
 from gensim.utils import simple_preprocess
-from tqdm.notebook import tqdm
 
 
 class CCNewsExtractor:
@@ -448,7 +448,8 @@ class Algorithms(Enum):
 
 # %% id="41e35849"
 def load_model(model_path: str):
-    """Load a word2vec model from a given path."""
+    """Load a word2vec model from a given path.
+    """
     try:
         print(model_path)
         return word2vec.Word2Vec.load(model_path)
@@ -553,7 +554,7 @@ report_stats(skip_gram_model)
 # %% id="130c02f7"
 models = {
     Algorithms.CBOW: cbow_model,
-    # Algorithms.SKIP_GRAM: skip_gram_model,
+    #Algorithms.SKIP_GRAM: skip_gram_model,
 }
 
 # %% id="340bdf69"
@@ -638,7 +639,6 @@ model.wv.evaluate_word_analogies(datapath("questions-words.txt"))
 #   <img src="https://abhinavcreed13.github.io/assets/images/bengio-model.png" width="600"/>
 # </p>
 
-
 # %% id="7d2a95ca"
 def lm_preprocess_corpus(corpus: list[str]) -> list[str]:
     """Función de preprocesamiento para LM
@@ -709,7 +709,7 @@ corpora = []
 plaintext_corpora = {
     "abc": abc,
     "Gutenberg": gutenberg,
-    # "Genesis": genesis, Este no lo usamos por una buena razón
+    #"Genesis": genesis, Este no lo usamos por una buena razón
     "Inaugural": inaugural,
     "State Union": state_union,
     "Web": webtext,
@@ -815,13 +815,12 @@ def get_train_test_data(
 
 # %% id="a7a48db5"
 # cargamos bibliotecas
-import time
-
 import torch
+from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch import nn
 from torch.utils.data import DataLoader
+import time
 
 # %% id="7192261e"
 # Setup de parametros
@@ -847,7 +846,6 @@ train_loader = DataLoader(train_set, batch_size=BATCH_SIZE)
 
 # %% [markdown] id="7514f9fb"
 # ### Creamos la arquitectura del modelo
-
 
 # %% id="bcee7728"
 # Trigram Neural Network Model
@@ -894,7 +892,6 @@ device
 
 # %% id="4911347a"
 import os
-
 NN_MODELS_PATH = os.path.join("models", "nn")
 
 os.makedirs(NN_MODELS_PATH, exist_ok=True)
@@ -966,9 +963,7 @@ def get_torch_model(path: str) -> TrigramModel:
 
 
 # %% id="45fb6565"
-model = get_torch_model(
-    os.path.join("models/nn/", "lm_large_cuda_context_2_epoch_0.dat")
-)
+model = get_torch_model(os.path.join("models/nn/", "lm_large_cuda_context_2_epoch_0.dat"))
 
 # %% colab={"base_uri": "https://localhost:8080/", "height": 34} id="xsgSDqEzB0xV" outputId="86560e54-1590-46fa-dbd4-2fdcf3886a64"
 device
@@ -1016,7 +1011,6 @@ print(index_to_word.get(model_probs_sorted[0][1]))
 # %% [markdown] id="7c38cad1"
 # ### Generacion de lenguaje
 
-
 # %% id="b3482b65"
 def get_likely_words(
     model: TrigramModel,
@@ -1024,7 +1018,8 @@ def get_likely_words(
     words_indexes: dict,
     index_to_word: dict,
 ) -> list[tuple]:
-    """Dado un contexto obtiene las palabras más probables"""
+    """Dado un contexto obtiene las palabras más probables
+    """
     model_probs = {}
     words = context.split()
     idx_word_1 = get_word_id(words_indexes, words[0])
@@ -1047,7 +1042,6 @@ get_likely_words(model, sentence, words_indexes, index_to_word)[:3]
 # %% id="49ab4b69"
 import random
 from random import randint
-
 
 def get_next_top_p_word(words: list[tuple[float, str]], p: float = 0.8) -> str:
     """
@@ -1106,7 +1100,9 @@ def generate_text(
     tokens_count: int = 0,
 ) -> None:
     next_word = get_next_top_p_word(
-        get_likely_words(model, history, words_indexes, index_to_word), p=TOP_P
+        get_likely_words(
+            model, history, words_indexes, index_to_word
+        ), p=TOP_P
     )
     print(next_word, end=" ")
     tokens_count += 1
@@ -1156,8 +1152,7 @@ generate_text(model, sentence, words_indexes, index_to_word)
 #         - Relación entre perplejidad y calidad del modelo
 #         - Ventajas y limitaciones de esta métrica
 # - Evalua el modelo entrenado en clase con los corpus de `nltk`
-#     - Descarga el modelo [acá](https://drive.google.com/file/d/1xSNO7DAMkBLL1g0D9WxUundXyy5PHdTH/view?usp=sharing)
-#     - **Nota:** El modelo porporcionado es solo un place holder. Se recomienda re-entrenar uno para tener mejor desempeño.
+#     - Descarga el modelo acá
 #
 # #### Creación de modelos del lenguaje
 #

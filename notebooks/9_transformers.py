@@ -213,8 +213,7 @@ rprint(spa_gen("Dios dijo")[0])
 # %%
 import soundfile as sf
 
-# TODO: Try with a better model
-t2s = pipeline("text-to-speech", model="")
+t2s = pipeline("text-to-speech")
 result = t2s("You are so beautiful")
 
 # Extract audio data and sampling rate
@@ -438,7 +437,7 @@ bert_model = BertModel.from_pretrained("bert-base-uncased")
 bert_model.save_pretrained("my_berto_modelo")
 
 # %%
-# !ls bert_model
+# !ls my_berto_modelo
 
 # %% [markdown]
 # #### Manejando multiples entradas
@@ -585,9 +584,7 @@ rprint(probs)
 rprint(model.config.id2label)
 
 # %% [markdown]
-# Con esta información podemos concluir que el modelo asigno las siguientes labels:
-# 1. *NEGATIVE*: 0.00001, *POSITIVE*: 0.99982
-# 2. *NEGATIVE*: 0.99283, *POSITIVE*: 0.00071
+# Con esta información podemos concluir que el modelo asigno labels con base en probabilidades.
 
 # %% [markdown]
 # Esta sería la reproducción de lo que sucede detrás de la función `pipeline()`.
@@ -735,7 +732,7 @@ trainer = Trainer(
     train_dataset=tokenized_dataset["train"],
     eval_dataset=tokenized_dataset["validation"],
     data_collator=data_collator,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
 )
 
 # %% [markdown]
@@ -827,7 +824,7 @@ trainer = Trainer(
     train_dataset=tokenized_dataset["train"],
     eval_dataset=tokenized_dataset["validation"],
     data_collator=data_collator,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
     # Esto es nuevo O:
     compute_metrics=compute_metrics,
 )
