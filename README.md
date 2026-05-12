@@ -183,6 +183,8 @@ print(word_vectors.most_similar(positive=['woman', 'profession'], negative=['man
 **Fecha: 5 de Mayo 2026 11:59pm**
 
 ### Formáto de entrega
+
+- Esta práctica deberá entregarse en equipos de dos personas
 - Crear una carpeta con el nombre de su equipo dentro de `practicas/`
 - Incluir los archivos requeridos (notebook, script Python, README)
 - Ejemplo de estructura:
@@ -241,3 +243,44 @@ La calidad de un modelo del lenguaje puede ser evaluado por medio de su perpleji
 - Diseña una estrategia de generación de usando el modelo del lenguaje entrenado con sub-word tokenization
 - Se deben generar secuencias de palabras (no subwords)
 - Muestra tres ejemplos de generación
+
+## Práctica 5: Fine-tunning y puesta en producción de modelos
+
+**Fecha de entrega: 26 de Mayo de 2026**
+
+### Formáto de entrega
+
+- Esta práctica deberá entregarse en equipos de dos personas
+- Crear una carpeta con el nombre de su equipo dentro de `practicas/`
+- Incluir los archivos requeridos (notebook, script Python, README)
+- Ejemplo de estructura:
+
+```
+practicas/
+├── krustaceo/
+│   └── P4
+│       ├── mi_practica5.ipynb
+│       ├── mi_practica5.py
+│       └── README.md  # <-- Incluir los nombres de los integrantes
+```
+
+### Entregables
+
+- Selecciona un modelo pre-entrenado como base y realiza *fine-tuning* para resolver alguna tarea de NLP que te parezca reelevante
+  - Procura utilizar datasets y modelos pequeños para que sea viable
+  - Recuerda las posibles tareas disponibles en HF `*For<task>`
+- Desarrolla y pon en producción un prototipo del modelo
+  - Incluye una URL pública donde podamos ver tu proyecto
+  - Recomendamos usar framewoks de prototipado (*streamlit* o *gradio*) y el *free-tier* de *spaces* de hugging face
+    - https://huggingface.co/spaces/launch
+    - https://huggingface.co/docs/hub/spaces-sdks-streamlit
+    - https://huggingface.co/docs/hub/spaces-sdks-gradio
+
+### Reporte
+
+- Reporta que tan bien se resolvió la tarea y que tan útil fue tu app
+- Reporta retos y dificultades al realizar el *fine-tuning* y al poner tu modelo en producción
+
+### Extra
+
+- Utiliza [code carbon](https://codecarbon.io/#howitwork) para reportar las emisiones de tu app
