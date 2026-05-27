@@ -1,6 +1,9 @@
-# P5cod: Fine tunneo de ALBERT para análisis de sentimientos.
+# P5: Fine-tuning de ALBERT para análisis de sentimientos
 
-En esta práctica haremos fine tunning a un modelo preentrenado para realizar fine tunning para analizar sentimientos.
+En esta práctica hacemos fine-tuning a un modelo preentrenado para realizar análisis de sentimientos.
+
+La tarea consiste en tomar una oración en inglés y clasificar si tiene connotación positiva o negativa.
+
 ---
 
 ## Contenido
@@ -8,63 +11,94 @@ En esta práctica haremos fine tunning a un modelo preentrenado para realizar fi
 ```text
 .
 ├── P5.py                        # Código fuente 
-├── P5.ipynb                     # Notebook generado 
-└── README.md                    # Este Readme
+├── P5.ipynb                     # Notebook generado
+├── app.py                       # Prototipo en Gradio
+├── requirements.txt             # Dependencias para Hugging Face Spaces
+├── README.md                    # Este README
+└── modelo-sentimientos/         # Modelo fine-tuneado
 ```
-
 
 ---
 
 ## Requisitos
 
- - 'torch'
- - 'transformers'
- - 'datasets'
- - 'gradio'
- - 'sentencepiece'
- - 'safetensors'
- - 'codecarbon'
+- `torch`
+- `transformers`
+- `datasets`
+- `gradio`
+- `sentencepiece`
+- `safetensors`
+- `codecarbon`
 
 ---
 
+## Tarea seleccionada
 
+Se eligió **análisis de sentimientos** como tarea NLP relevante. El modelo toma una oración en inglés y clasifica si tiene connotación positiva o negativa.
 
-### Tarea seleccionada
+Ejemplos:
 
-Se eligió **análisis de sentimientos** como tarea NLP relevante, tomamos una oración en inglés y clasificamos si tiene connotación positiva o negativa.
+```text
+"This movie was really good." → positivo
+"This class was boring and terrible." → negativo
+```
 
 ---
 
 ## Dataset
-Utilizamos el dataset **SST-2**, incluido en GLUE
 
-la estructura del dataset e sla siguiente:
+Utilizamos el dataset **SST-2**, incluido en GLUE.
 
-- 'sentence': oración de entrada.
-- 'label': etiqueda de sentimiento.
-- 'idx': identificador del ejemplo.
+La estructura del dataset es la siguiente:
+
+- `sentence`: oración de entrada.
+- `label`: etiqueta de sentimiento.
+- `idx`: identificador del ejemplo.
 
 Las etiquetas son:
-- 0 = negativo
-- 1 = positivo
 
-Se utilizó un subconjunto del dataset con: 
+- `0`: negativo
+- `1`: positivo
 
-- 3000 ejemplos para entrenamiento
-- 500 ejemplos de validación
+Se utilizó un subconjunto del dataset con:
+
+- 3000 ejemplos para entrenamiento.
+- 500 ejemplos de validación.
 
 ---
+
 ## Modelo base
 
-Se utilizó el modelo pre-entrenado: ALBERT
+Se utilizó el modelo preentrenado **ALBERT**:
 
 ```text
 albert/albert-base-v2
 ```
-Un transformer entrenado con un corpus en inglés de forma auto-supervisada pensado principalmente para predecir la palabra faltante en una oración, recomendado por Huggingface para tarea de clasificación de secuencias.
+
+ALBERT es un transformer entrenado con un corpus en inglés de forma autosupervisada. En esta práctica se utilizó como base para una tarea de clasificación de secuencias, agregando una cabeza de clasificación binaria para distinguir entre sentimientos positivos y negativos.
+
+---
+
+## Fine-tuning
+
+El entrenamiento se realizó con `Trainer` de Hugging Face.
+
+Configuración utilizada:
+
+```text
+Épocas: 1
+Batch size de entrenamiento: 8
+Batch size de evaluación: 8
+Ejemplos de entrenamiento: 3000
+Ejemplos de validación: 500
+Hardware: CPU
+```
+
+---
 
 ## Desempeño
-Al haber problemas con la libreria **Torchvision** se implementó **accuracy**, calculada manualmente a partir de los logits del modelo.
+
+Al haber problemas con la librería `evaluate` y conflictos relacionados con `torchvision`, se implementó **accuracy** manualmente a partir de los logits del modelo.
 
 ```python
 def compute_metrics(eval_preds):
@@ -78,43 +112,92 @@ def compute_metrics(eval_preds):
 
 ```text
 eval_loss: 0.5353
-eval_accuracy: 0.732 
+eval_accuracy: 0.732
 ```
 
-Por lo que el modelo logra clasificar correctamente los sentimientos de las oraciones usadas en los ejemplos de validación.
+Con estos resultados, el modelo logra clasificar correctamente una parte considerable de las oraciones usadas en los ejemplos de validación. Sin embargo, el desempeño debe interpretarse tomando en cuenta que el entrenamiento fue limitado a un subconjunto del dataset.
 
-### Retos y dificultades.
+---
 
-1.**Configuración en PyTorch**
-    - uv instala la versión CUDA de PyTorch, al no contar con una GPU Nvidia dedicada se optó por forzar la utilización de PyTorch para CPU's en el toml, si el proyecto será ejecutado en una computadora con GPU Nvidia no debería haber problema alguno, en caso contrario utilizar lo siguiente. 
-    ```text
-    [tool.uv.sources]
-    torch = { index = "pytorch-cpu" }
+## Prototipo
 
-    [[tool.uv.index]]
-    name = "pytorch-cpu"
-    url = "https://download.pytorch.org/whl/cpu"
-    explicit = true
-    ```
+Se desarrolló una aplicación con **Gradio** para probar el modelo desde una interfaz web.
+
+La app permite escribir una oración en inglés y devuelve las probabilidades asociadas a las clases:
+
+- `negativo`
+- `positivo`
+
+## URL pública del prototipo:
+
+```text
+https://huggingface.co/spaces/luisin0/analisis-sentimientos-ALBERT
+```
+
+---
+
+## Extra: CodeCarbon
+
+Para el punto extra se integró **CodeCarbon** en la aplicación.
+
+La app reporta una estimación de emisiones por predicción en kg CO₂ equivalente. Como cada inferencia es muy rápida, los valores obtenidos suelen ser pequeños, pero permiten documentar el costo computacional aproximado del prototipo.
+
+---
+
+## Retos y dificultades
+
+1. **Configuración en PyTorch**
+
+   `uv` instalaba la versión CUDA de PyTorch. Al no contar con una GPU NVIDIA dedicada, se optó por forzar la utilización de PyTorch para CPU en el `pyproject.toml`.
+
+   ```toml
+   [tool.uv.sources]
+   torch = { index = "pytorch-cpu" }
+
+   [[tool.uv.index]]
+   name = "pytorch-cpu"
+   url = "https://download.pytorch.org/whl/cpu"
+   explicit = true
+   ```
+
 2. **Evaluación**
-   - La libreria `evaluate` no pudo ser cambiada por conflictos de `torchvision`, se optó por implementar la métrica de forma manual.
+
+   La librería `evaluate` produjo conflictos relacionados con `torchvision`, por lo que se optó por implementar la métrica de forma manual.
+
+3. **Tiempo de entrenamiento**
+
+   El entrenamiento completo sobre SST-2 era demasiado lento en CPU, así que se trabajó con un subconjunto de 3000 ejemplos para entrenamiento y 500 para validación.
+
+---
 
 ## Limitaciones
 
 1. **Entrenamiento**
-    - El entrenamiento fue limitado a 3000 oraciones y la verificación a 500 oraciones por solo una epoca.
+
+   El entrenamiento fue limitado a 3000 oraciones y la validación a 500 oraciones durante una sola época.
+
 2. **Lenguaje**
-   - El corpus utilizado sólo contiene ejemplos en inglés.
-## Uso de IA
 
-Se utilizó **GitHub Copilot** como herramienta de apoyo en:
+   El corpus utilizado sólo contiene ejemplos en inglés, por lo que el modelo no debe utilizarse para clasificar oraciones en español.
 
-1. **Redacción de este README.**
+3. **Ambigüedad**
 
-El resto del código (salvo partes explícitamente reutilizadas de clase) fue desarrollado de manera independiente.
+   El modelo puede fallar con oraciones ambiguas, irónicas o con sentimientos mixtos.
 
 ---
 
-## Autor
+## Uso de IA
 
-Luisin-mdz
+Se utilizaron herramientas de IA como apoyo en:
+
+1. Depuración del entorno local.
+2. Revisión de este README.
+
+El código final fue revisado, ejecutado y adaptado manualmente para esta práctica.
+
+---
+
+## Autores
+
+Luisin-mdz 
+SubsetOfMars
